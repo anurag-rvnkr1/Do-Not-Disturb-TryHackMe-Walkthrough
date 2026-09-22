@@ -545,3 +545,592 @@ THM{******************************}
 The flag has been intentionally hidden.
 
 ---
+
+## Phase 9 — Reverse Shell (Initial Foothold)
+
+<img src="docs/assets/09-netcat-listener.png" width="100%" alt="Netcat Reverse Shell Listener">
+
+After confirming server-side command execution, the next objective is to establish an interactive shell on the target machine.
+
+### Objective
+
+Gain an interactive command-line session as the compromised application user for post-exploitation activities.
+
+### Why a Reverse Shell?
+
+A reverse shell provides significantly more flexibility than executing one command at a time through SSTI.
+
+It enables:
+
+* Interactive Linux enumeration.
+* File inspection.
+* Network enumeration.
+* Privilege escalation.
+* Access to internal services.
+
+> **Security Note**
+>
+> The reverse shell payload has been intentionally omitted from this repository. This documentation focuses on explaining the attack chain rather than distributing exploit payloads.
+
+---
+
+### Reverse Shell Listener
+
+<img src="docs/assets/10-shell-connected.png" width="100%" alt="Reverse Shell Connected">
+
+Once the connection is received, the attacker gains a shell running as the application's service account.
+
+### Initial Context
+
+| Property          | Value                   |
+| ----------------- | ----------------------- |
+| User              | `poolside`              |
+| Shell Type        | Interactive Bash        |
+| Privilege Level   | Unprivileged Linux User |
+| Working Directory | Application Directory   |
+
+At this stage the attacker has **remote code execution** but not administrative privileges.
+
+---
+
+## Phase 10 — Local Enumeration
+
+<img src="docs/assets/11-ss-tlnu.png" width="100%" alt="Listening Services Enumeration">
+
+With a shell established, the focus shifts to **host enumeration**.
+
+### Objective
+
+Identify services that are inaccessible externally but exposed locally.
+
+### Enumeration Areas
+
+* Listening TCP ports.
+* Listening UDP ports.
+* Localhost-only services.
+* Running application processes.
+* Debug interfaces.
+
+### Key Discovery
+
+The enumeration reveals a service listening on:
+
+`127.0.0.1:9229`
+
+This is noteworthy because it is **not reachable externally** during reconnaissance but becomes reachable once local access is obtained.
+
+### Why Port 9229 Matters
+
+Port **9229** is the default **Node.js Inspector** debugging interface.
+
+Developers use it for:
+
+* Live debugging.
+* Runtime inspection.
+* Memory analysis.
+* JavaScript execution.
+
+If left enabled in production, it can expose the application's execution context.
+
+---
+
+### Security Insight
+
+Local-only services frequently become privilege escalation opportunities after initial compromise.
+
+Examples include:
+
+* Docker sockets.
+* Redis.
+* PostgreSQL.
+* Node Inspector.
+* Internal APIs.
+
+Always enumerate localhost after obtaining a shell.
+
+---
+
+## Phase 11 — Node.js Inspector Abuse
+
+<img src="docs/assets/12-node-inspector.png" width="100%" alt="Node Inspector REPL">
+
+The next phase investigates the debugging service.
+
+### Objective
+
+Determine whether the debugger exposes privileged execution.
+
+### What is Node Inspector?
+
+Node Inspector is a debugging interface built into Node.js that allows developers to inspect and control a running process.
+
+Capabilities include:
+
+* Evaluate JavaScript expressions.
+* Inspect variables.
+* Execute functions.
+* Pause execution.
+* Access runtime modules.
+
+If authentication is absent or misconfigured, an attacker may inherit the permissions of the running Node.js process.
+
+---
+
+### Interactive REPL
+
+The debugger exposes a JavaScript REPL.
+
+This provides direct interaction with:
+
+* `process`
+* `global`
+* Built-in modules
+* Environment variables
+* Runtime objects
+
+### Verification
+
+<img src="docs/assets/13-uid-gid.png" width="100%" alt="UID and GID Enumeration">
+
+The process identity differs from the original shell.
+
+| Observation            | Meaning                              |
+| ---------------------- | ------------------------------------ |
+| Different UID          | Different execution context          |
+| Different GID          | Different privileges                 |
+| Separate Process Owner | Opportunity for privilege escalation |
+
+---
+
+### Process Analysis
+
+<img src="docs/assets/14-pipelinesvc.png" width="100%" alt="pipelinesvc Context">
+
+The debugger reveals the process runs under a different service account.
+
+Important observations include:
+
+* Dedicated service account.
+* Additional Linux group membership.
+* Broader filesystem permissions than the web application user.
+
+### Why This Happens
+
+Applications often separate:
+
+* Web service account.
+* Background worker account.
+* Pipeline account.
+* CI/CD account.
+
+A debugger attached to a privileged service inherits those permissions.
+
+---
+
+## Phase 12 — Privilege Escalation
+
+<img src="docs/assets/15-debugfs-discovery.png" width="100%" alt="Disk Group Enumeration">
+
+The process belongs to the Linux **disk** group.
+
+### Why This Is Dangerous
+
+The **disk** group typically grants access to raw storage devices.
+
+Examples include:
+
+* `/dev/sda`
+* `/dev/nvme0n1`
+* `/dev/vda`
+
+Direct block device access bypasses ordinary filesystem permission checks.
+
+---
+
+### Understanding debugfs
+
+`debugfs` is a filesystem debugging utility for **ext2/ext3/ext4** filesystems.
+
+It allows:
+
+* Reading files.
+* Inspecting inodes.
+* Browsing directories.
+* Accessing filesystem metadata.
+
+When executed against a block device, it interacts with the filesystem directly.
+
+---
+
+### Attack Concept
+
+Instead of opening a protected file normally:
+
+```text
+Application
+     │
+Kernel Permission Check
+     │
+Permission Denied
+```
+
+`debugfs` reads the filesystem directly:
+
+```text
+Application
+     │
+Raw Block Device
+     │
+Filesystem Structures
+     │
+Protected File Content
+```
+
+### Security Impact
+
+The attacker bypasses traditional Linux permission enforcement because the filesystem is accessed below the normal file abstraction layer.
+
+> Exploit commands have been intentionally redacted.
+
+---
+
+### Root Flag (Redacted)
+
+<img src="docs/assets/16-root-flag.png" width="100%" alt="Root Flag Redacted">
+
+For portfolio purposes:
+
+```text
+THM{*******************************}
+```
+
+The flag is hidden to preserve TryHackMe integrity.
+
+---
+
+# 🔍 Vulnerability Analysis
+
+## 1. NoSQL Injection
+
+### Severity
+
+**High**
+
+### Category
+
+Authentication Bypass
+
+### Technology
+
+MongoDB
+
+### Root Cause
+
+The application accepts user-controlled query operators inside authentication fields.
+
+### Impact
+
+* Authentication bypass.
+* Unauthorized sessions.
+* Administrative access.
+
+### Detection
+
+Indicators include:
+
+* JSON operators inside form fields.
+* Unexpected authentication success.
+* MongoDB query syntax appearing in requests.
+
+### Mitigation
+
+* Validate input types.
+* Reject MongoDB operators.
+* Sanitize request bodies.
+* Use strict schemas.
+
+---
+
+## 2. Server-Side Template Injection (EJS)
+
+### Severity
+
+**Critical**
+
+### Category
+
+Server-Side Injection
+
+### Technology
+
+Embedded JavaScript Templates (EJS)
+
+### Root Cause
+
+User-controlled template content is rendered without sanitization.
+
+### Impact
+
+* JavaScript execution.
+* File access.
+* Environment variable disclosure.
+* Remote Code Execution.
+
+### Why EJS is Powerful
+
+EJS executes JavaScript during template rendering.
+
+This makes SSTI particularly dangerous because JavaScript can interact with Node.js APIs.
+
+### Mitigation
+
+* Never evaluate user-controlled templates.
+* Escape template syntax.
+* Use safe rendering contexts.
+* Disable dynamic template editing.
+
+---
+
+## 3. Exposed Node Inspector
+
+### Severity
+
+**High**
+
+### Root Cause
+
+Production debugging interface exposed locally.
+
+### Risks
+
+* Runtime inspection.
+* JavaScript execution.
+* Module access.
+* Environment disclosure.
+
+### Best Practice
+
+* Disable inspector in production.
+* Bind only when necessary.
+* Restrict debugger access.
+
+---
+
+## 4. Privilege Escalation Through disk Group
+
+### Severity
+
+**Critical**
+
+### Root Cause
+
+Service account has unnecessary membership in the `disk` group.
+
+### Why It Matters
+
+Members of `disk` can often read raw storage devices.
+
+### Risks
+
+* Read protected files.
+* Offline password extraction.
+* Filesystem analysis.
+* Sensitive data exposure.
+
+### Mitigation
+
+* Principle of least privilege.
+* Remove disk group membership.
+* Restrict debugging tools.
+
+---
+
+# 🛡️ Security Recommendations
+
+## Authentication Security
+
+* Validate request structure.
+* Reject unexpected operators.
+* Use schema validation.
+* Implement rate limiting.
+
+---
+
+## Template Security
+
+* Never render untrusted templates.
+* Sanitize expressions.
+* Use sandboxed template engines where possible.
+* Escape user-controlled content.
+
+---
+
+## Session Security
+
+* Regenerate sessions after login.
+* Use secure cookies.
+* Implement HttpOnly.
+* Enable SameSite cookies.
+
+---
+
+## Debug Interface Security
+
+* Disable debugging in production.
+* Restrict localhost debugging.
+* Use authentication.
+* Monitor debugger connections.
+
+---
+
+## Linux Hardening
+
+* Remove unnecessary group memberships.
+* Audit privileged binaries.
+* Restrict filesystem debugging utilities.
+* Enable audit logging.
+
+---
+
+# 🔵 Blue Team Detection Opportunities
+
+| Activity                        | Detection Source           |
+| ------------------------------- | -------------------------- |
+| Directory Enumeration           | Web server logs            |
+| NoSQL Injection Attempts        | WAF / Application logs     |
+| Session Creation                | Authentication logs        |
+| Template Injection              | Application logs           |
+| Unexpected JavaScript Execution | Runtime monitoring         |
+| Reverse Shell                   | Egress monitoring          |
+| Connection to Port 9229         | Host firewall / Audit logs |
+| debugfs Execution               | Linux Auditd               |
+
+---
+
+# 🎯 MITRE ATT&CK Mapping
+
+| Tactic               | Technique                                 |
+| -------------------- | ----------------------------------------- |
+| Initial Access       | T1190 – Exploit Public-Facing Application |
+| Execution            | T1059 – Command and Scripting Interpreter |
+| Discovery            | T1046 – Network Service Discovery         |
+| Discovery            | T1082 – System Information Discovery      |
+| Persistence          | Session Abuse                             |
+| Privilege Escalation | Abuse of Misconfigured Services           |
+| Collection           | T1005 – Data from Local System            |
+
+---
+
+# 🧱 OWASP Top 10 Mapping
+
+| OWASP Category | Application                              |
+| -------------- | ---------------------------------------- |
+| A01            | Broken Access Control                    |
+| A03            | Injection                                |
+| A05            | Security Misconfiguration                |
+| A07            | Identification & Authentication Failures |
+| A09            | Security Logging & Monitoring Failures   |
+
+---
+
+# 📚 Learning Outcomes
+
+This room demonstrates practical skills in several offensive security domains.
+
+### Web Application Security
+
+* HTTP interception.
+* Authentication testing.
+* Session analysis.
+* NoSQL Injection.
+* SSTI identification.
+
+### Node.js Security
+
+* EJS template rendering.
+* Runtime execution.
+* Inspector abuse.
+* Process context analysis.
+
+### Linux Privilege Escalation
+
+* Local enumeration.
+* Listening services.
+* Linux permissions.
+* Group privilege abuse.
+* Filesystem debugging.
+
+### Blue Team Perspective
+
+* Misconfiguration detection.
+* Least privilege enforcement.
+* Monitoring internal services.
+* Runtime hardening.
+
+---
+
+# 📖 Key Takeaways
+
+* Small vulnerabilities become critical when chained together.
+* Authentication validation must sanitize NoSQL operators.
+* Template engines should never evaluate untrusted input.
+* Debug interfaces must never remain enabled in production.
+* Linux group memberships require periodic auditing.
+* Localhost services should always be enumerated during post-exploitation.
+
+---
+
+# 📂 Additional Documentation
+
+This repository also includes:
+
+| File                                            | Description                            |
+| ----------------------------------------------- | -------------------------------------- |
+| `Documentation/Do_Not_Disturb_Documentation.md` | Complete technical report.             |
+| `Documentation/methodology.md`                  | Attack methodology and reasoning.      |
+| `docs/index.md`                                 | GitHub Pages documentation site.       |
+| `resources/notes.md`                            | Quick-reference notes.                 |
+| `resources/iocs.md`                             | Indicators of Compromise.              |
+| `resources/references.md`                       | Security references and documentation. |
+
+---
+
+# 📑 References
+
+This walkthrough is based on concepts documented by:
+
+* TryHackMe learning material.
+* OWASP Web Security Testing Guide.
+* MITRE ATT&CK Framework.
+* Node.js Documentation.
+* MongoDB Documentation.
+* Express.js Security Best Practices.
+
+---
+
+# ⚠️ Responsible Disclosure
+
+This repository is provided **strictly for educational and defensive security purposes**.
+
+* All testing was performed inside the TryHackMe lab environment.
+* No production systems were targeted.
+* Sensitive flags have been redacted.
+* Exploit payloads have been intentionally omitted where appropriate.
+
+---
+
+# 👨‍💻 Author
+
+**Anurag Revankar**
+
+Cybersecurity • Penetration Testing • Web Security • SOC • TryHackMe Documentation
+
+---
+
+<div align="center">
+
+### ⭐ If you found this walkthrough useful, consider starring the repository.
+
+**Made for cybersecurity learning, documentation, and portfolio demonstration.**
+
+</div>
