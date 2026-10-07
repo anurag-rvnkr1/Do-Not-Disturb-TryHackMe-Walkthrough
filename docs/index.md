@@ -125,7 +125,6 @@ description: "Professional penetration testing documentation for the Do Not Dist
 - [About This Write-up](#about-this-write-up)
 
 </div>
-
 ---
 
 ## Mission
