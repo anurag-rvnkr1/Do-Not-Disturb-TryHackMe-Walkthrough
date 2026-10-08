@@ -87,42 +87,42 @@ description: "Professional penetration testing documentation for the Do Not Dist
 
 ---
 
-## Navigation
-
 <div class="ctf-toc">
 
-<div class="ctf-toc-title">Documentation Map</div>
+  <div class="ctf-toc-title">Navigation</div>
 
-1. [Mission](#mission)
-2. [Quick Overview](#quick-overview)
-3. [Attack Chain](#attack-chain)
-4. [Learning Objectives](#learning-objectives)
-5. [Lab Environment](#lab-environment)
-6. [Methodology](#methodology)
-7. [Reconnaissance and Directory Enumeration](#reconnaissance-and-directory-enumeration)
-8. [Authentication Request Analysis](#authentication-request-analysis)
-9. [NoSQL Injection Authentication Bypass](#nosql-injection-authentication-bypass)
-10. [Authenticated Session](#authenticated-session)
-11. [Staff Console](#staff-console)
-12. [EJS Server-Side Template Injection](#ejs-server-side-template-injection)
-13. [Remote Code Execution](#remote-code-execution)
-14. [User Flag](#user-flag)
-15. [Reverse Shell](#reverse-shell)
-16. [Local Enumeration](#local-enumeration)
-17. [Node.js Inspector](#nodejs-inspector)
-18. [Service Account Enumeration](#service-account-enumeration)
-19. [Privilege Escalation via `disk` Group](#privilege-escalation-via-disk-group)
-20. [Technical Findings](#technical-findings)
-21. [MITRE ATT&CK Mapping](#mitre-attck-mapping)
-22. [Tools Used](#tools-used)
-23. [Key Findings](#key-findings)
-24. [Security Recommendations](#security-recommendations)
-25. [Skills Demonstrated](#skills-demonstrated)
-26. [Lessons Learned](#lessons-learned)
-27. [References](#references)
-28. [Repository Structure](#repository-structure)
-29. [Responsible Use](#responsible-use)
-30. [About This Write-up](#about-this-write-up)
+  <ul>
+    <li><a href="#mission">Mission</a></li>
+    <li><a href="#quick-overview">Quick Overview</a></li>
+    <li><a href="#attack-chain">Attack Chain</a></li>
+    <li><a href="#learning-objectives">Learning Objectives</a></li>
+    <li><a href="#lab-environment">Lab Environment</a></li>
+    <li><a href="#methodology">Methodology</a></li>
+    <li><a href="#reconnaissance-and-directory-enumeration">Reconnaissance and Directory Enumeration</a></li>
+    <li><a href="#authentication-request-analysis">Authentication Request Analysis</a></li>
+    <li><a href="#nosql-injection-authentication-bypass">NoSQL Injection Authentication Bypass</a></li>
+    <li><a href="#authenticated-session">Authenticated Session</a></li>
+    <li><a href="#staff-console">Staff Console</a></li>
+    <li><a href="#ejs-server-side-template-injection">EJS Server-Side Template Injection</a></li>
+    <li><a href="#remote-code-execution">Remote Code Execution</a></li>
+    <li><a href="#user-flag">User Flag</a></li>
+    <li><a href="#reverse-shell">Reverse Shell</a></li>
+    <li><a href="#local-enumeration">Local Enumeration</a></li>
+    <li><a href="#nodejs-inspector">Node.js Inspector</a></li>
+    <li><a href="#service-account-enumeration">Service Account Enumeration</a></li>
+    <li><a href="#privilege-escalation-via-disk-group">Privilege Escalation via <code>disk</code> Group</a></li>
+    <li><a href="#technical-findings">Technical Findings</a></li>
+    <li><a href="#mitre-attck-mapping">MITRE ATT&amp;CK Mapping</a></li>
+    <li><a href="#tools-used">Tools Used</a></li>
+    <li><a href="#key-findings">Key Findings</a></li>
+    <li><a href="#security-recommendations">Security Recommendations</a></li>
+    <li><a href="#skills-demonstrated">Skills Demonstrated</a></li>
+    <li><a href="#lessons-learned">Lessons Learned</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#repository-structure">Repository Structure</a></li>
+    <li><a href="#responsible-use">Responsible Use</a></li>
+    <li><a href="#about-this-write-up">About This Write-up</a></li>
+  </ul>
 
 </div>
 ---
