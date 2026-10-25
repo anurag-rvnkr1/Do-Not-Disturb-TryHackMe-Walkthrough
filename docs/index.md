@@ -1,9 +1,3 @@
----
-layout: default
-title: "Do Not Disturb — TryHackMe"
-description: "Professional penetration testing documentation for the Do Not Disturb Boot2Root room from TryHackMe's Hacker Holidays 2026 series."
----
-
 <div class="ctf-hero">
 
   <h1>Do Not Disturb</h1>
